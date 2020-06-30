@@ -37,7 +37,7 @@ const BookType = new GraphQLObjectType({
         author: { 
             type: AuthorType,
             resolve: (book) => {
-                return authors.find(author => author.id === books.authorId)
+                return authors.find(author => author.id === books.authorId) // Fetch data from database in a real app
             }
         }
     })
@@ -62,10 +62,26 @@ const RootQueryType = new GraphQLObjectType({
     name: 'Query',
     description: 'Root Query',
     fields: () => ({
+        book: {
+            type: BookType,
+            description: 'A Single Book',
+            args: {
+                id: { type: GraphQLInt }
+            },
+            resolve: (parent, args) => books.find(book => book.id === args.id)
+        },
         books: {
             type: new GraphQLList(BookType),
             description: 'List of All Books',
             resolve: () => books
+        },
+        author: {
+            type: AuthorType,
+            description: 'A Single Author',
+            args: {
+                id: { type: GraphQLInt }
+            },
+            resolve: (parent, args) => authors.find(author => author.id === args.id)
         },
         authors: {
             type: new GraphQLList(AuthorType),
@@ -75,8 +91,41 @@ const RootQueryType = new GraphQLObjectType({
     })
 })
 
+const RootMutationType = new GraphQLObjectType({
+    name: 'Mutation',
+    description: 'Root Mutation',
+    fields: () => ({
+        addBook: {
+            type: BookType,
+            description: 'Add a book',
+            args: {
+                name: { type: GraphQLNonNull(GraphQLString) },
+                authorId: { type: GraphQLNonNull(GraphQLInt) }
+            },
+            resolve: (parent, args) => {
+                const book = { id: books.length + 1, name: args.name, authorId: args.authorId } // This is where the database can generate new data.
+                books.push(book)
+                return book
+            }
+        },
+        addAuthor: {
+            type: AuthorType,
+            description: 'Add an author',
+            args: {
+                name: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => {
+                const author = { id: authors.length + 1, name: args.name } // This is where the database can generate new data.
+                authors.push(author)
+                return author
+            }
+        }
+    })
+})
+
 const schema = new GraphQLSchema({
-    query: RootQueryType
+    query: RootQueryType,
+    mutation: RootMutationType
 })
 
 app.use('/graphql', expressGraphQL({
